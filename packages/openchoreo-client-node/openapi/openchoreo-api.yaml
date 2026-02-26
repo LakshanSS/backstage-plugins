@@ -59,8 +59,6 @@ tags:
     description: Trait templates for composable cross-cutting concerns
   - name: Workflows
     description: Generic workflow templates
-  - name: ComponentWorkflows
-    description: Component-specific workflow templates and runs
   - name: Authorization
     description: Role-based access control and authorization management
   - name: Webhooks
@@ -2191,6 +2189,116 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+    post:
+      operationId: createWorkflow
+      summary: Create workflow
+      description: Creates a new generic workflow within a namespace.
+      tags: [Workflows]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Workflow'
+      responses:
+        '201':
+          description: Workflow created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/namespaces/{namespaceName}/workflows/{workflowName}:
+    get:
+      operationId: getWorkflow
+      summary: Get workflow
+      description: Returns details of a specific workflow.
+      tags: [Workflows]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/WorkflowNameParam'
+      responses:
+        '200':
+          description: Workflow details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    put:
+      operationId: updateWorkflow
+      summary: Update workflow
+      description: Replaces an existing workflow (full update).
+      tags: [Workflows]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/WorkflowNameParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Workflow'
+      responses:
+        '200':
+          description: Workflow updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      operationId: deleteWorkflow
+      summary: Delete workflow
+      description: Deletes a workflow by name.
+      tags: [Workflows]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/WorkflowNameParam'
+      responses:
+        '204':
+          description: Workflow deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/v1/namespaces/{namespaceName}/workflows/{workflowName}/schema:
     get:
       operationId: getWorkflowSchema
@@ -2220,7 +2328,7 @@ paths:
   # WorkflowRun Endpoints (Generic Workflow Executions)
   # =============================================================================
 
-  /api/v1/namespaces/{namespaceName}/workflow-runs:
+  /api/v1/namespaces/{namespaceName}/workflowruns:
     get:
       operationId: listWorkflowRuns
       summary: List workflow runs
@@ -2256,7 +2364,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateWorkflowRunRequest'
+              $ref: '#/components/schemas/WorkflowRun'
       responses:
         '201':
           description: Workflow run created
@@ -2275,7 +2383,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  /api/v1/namespaces/{namespaceName}/workflow-runs/{runName}:
+  /api/v1/namespaces/{namespaceName}/workflowruns/{runName}:
     get:
       operationId: getWorkflowRun
       summary: Get workflow run
@@ -2300,7 +2408,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  /api/v1/namespaces/{namespaceName}/workflow-runs/{runName}/status:
+  /api/v1/namespaces/{namespaceName}/workflowruns/{runName}/status:
     get:
       operationId: getWorkflowRunStatus
       summary: Get workflow run status
@@ -2323,7 +2431,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  /api/v1/namespaces/{namespaceName}/workflow-runs/{runName}/logs:
+  /api/v1/namespaces/{namespaceName}/workflowruns/{runName}/logs:
     get:
       operationId: getWorkflowRunLogs
       summary: Get workflow run logs
@@ -2364,7 +2472,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  /api/v1/namespaces/{namespaceName}/workflow-runs/{runName}/events:
+  /api/v1/namespaces/{namespaceName}/workflowruns/{runName}/events:
     get:
       operationId: getWorkflowRunEvents
       summary: Get workflow run events
@@ -2390,59 +2498,6 @@ paths:
                   $ref: '#/components/schemas/WorkflowRunEventEntry'
         '400':
           $ref: '#/components/responses/BadRequest'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-
-  # =============================================================================
-  # ComponentWorkflow Endpoints
-  # =============================================================================
-
-  /api/v1/namespaces/{namespaceName}/component-workflows:
-    get:
-      operationId: listComponentWorkflows
-      summary: List component workflows
-      description: Returns a list of component workflow templates available in the namespace.
-      tags: [ComponentWorkflows]
-      parameters:
-        - $ref: '#/components/parameters/NamespaceNameParam'
-        - $ref: '#/components/parameters/LimitParam'
-        - $ref: '#/components/parameters/CursorParam'
-      responses:
-        '200':
-          description: List of component workflows
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ComponentWorkflowTemplateList'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '500':
-          $ref: '#/components/responses/InternalError'
-
-  /api/v1/namespaces/{namespaceName}/component-workflows/{cwName}/schema:
-    get:
-      operationId: getComponentWorkflowSchema
-      summary: Get component workflow schema
-      description: Returns the parameter schema for a specific component workflow.
-      tags: [ComponentWorkflows]
-      parameters:
-        - $ref: '#/components/parameters/NamespaceNameParam'
-        - $ref: '#/components/parameters/ComponentWorkflowNameParam'
-      responses:
-        '200':
-          description: Component workflow schema
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SchemaResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -2779,129 +2834,6 @@ paths:
                 $ref: '#/components/schemas/ComponentRelease'
         '400':
           $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-
-  /api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-parameters:
-    patch:
-      operationId: updateComponentWorkflowParameters
-      summary: Update component workflow parameters
-      description: Updates the workflow parameters for a component.
-      tags: [ComponentWorkflows]
-      parameters:
-        - $ref: '#/components/parameters/NamespaceNameParam'
-        - $ref: '#/components/parameters/ProjectNameParam'
-        - $ref: '#/components/parameters/ComponentNameParam'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateComponentWorkflowRequest'
-      responses:
-        '200':
-          description: Workflow parameters updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Component'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-
-  /api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs:
-    get:
-      operationId: listComponentWorkflowRuns
-      summary: List component workflow runs
-      description: Returns a list of workflow runs for a component.
-      tags: [ComponentWorkflows]
-      parameters:
-        - $ref: '#/components/parameters/NamespaceNameParam'
-        - $ref: '#/components/parameters/ProjectNameParam'
-        - $ref: '#/components/parameters/ComponentNameParam'
-        - $ref: '#/components/parameters/LimitParam'
-        - $ref: '#/components/parameters/CursorParam'
-      responses:
-        '200':
-          description: List of workflow runs
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ComponentWorkflowRunList'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-
-    post:
-      operationId: createComponentWorkflowRun
-      summary: Trigger component workflow run
-      description: Triggers a new workflow run (build) for a component.
-      tags: [ComponentWorkflows]
-      parameters:
-        - $ref: '#/components/parameters/NamespaceNameParam'
-        - $ref: '#/components/parameters/ProjectNameParam'
-        - $ref: '#/components/parameters/ComponentNameParam'
-        - name: commit
-          in: query
-          required: false
-          description: Specific git commit SHA to build (optional)
-          schema:
-            type: string
-            example: abc1234
-      responses:
-        '201':
-          description: Workflow run triggered
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ComponentWorkflowRun'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-
-  /api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}:
-    get:
-      operationId: getComponentWorkflowRun
-      summary: Get component workflow run
-      description: Returns details of a specific workflow run.
-      tags: [ComponentWorkflows]
-      parameters:
-        - $ref: '#/components/parameters/NamespaceNameParam'
-        - $ref: '#/components/parameters/ProjectNameParam'
-        - $ref: '#/components/parameters/ComponentNameParam'
-        - $ref: '#/components/parameters/WorkflowRunNameParam'
-      responses:
-        '200':
-          description: Workflow run details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ComponentWorkflowRun'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4816,15 +4748,6 @@ components:
         type: string
         example: database-migration
 
-    ComponentWorkflowNameParam:
-      name: cwName
-      in: path
-      required: true
-      description: ComponentWorkflow name
-      schema:
-        type: string
-        example: docker-build
-
     ComponentNameParam:
       name: componentName
       in: path
@@ -4930,7 +4853,7 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            error: 'Invalid request: name is required'
+            error: "Invalid request: name is required"
             code: BAD_REQUEST
             details:
               - field: name
@@ -4943,7 +4866,7 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            error: 'Authentication required'
+            error: "Authentication required"
             code: UNAUTHORIZED
 
     Forbidden:
@@ -4953,7 +4876,7 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            error: 'You do not have permission to access this resource'
+            error: "You do not have permission to access this resource"
             code: FORBIDDEN
 
     NotFound:
@@ -4983,7 +4906,7 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            error: 'Internal server error'
+            error: "Internal server error"
             code: INTERNAL_ERROR
 
   # ===========================================================================
@@ -5067,7 +4990,7 @@ components:
           type: string
           format: date-time
           description: Creation timestamp
-          example: '2025-01-06T10:00:00Z'
+          example: "2025-01-06T10:00:00Z"
 
     Condition:
       type: object
@@ -5085,8 +5008,8 @@ components:
         status:
           type: string
           description: Status of the condition
-          enum: ['True', 'False', 'Unknown']
-          example: 'True'
+          enum: ["True", "False", "Unknown"]
+          example: "True"
         observedGeneration:
           type: integer
           format: int64
@@ -5095,7 +5018,7 @@ components:
           type: string
           format: date-time
           description: Last time the condition transitioned
-          example: '2025-01-06T10:00:05Z'
+          example: "2025-01-06T10:00:05Z"
         reason:
           type: string
           description: Machine-readable reason for the condition
@@ -5103,7 +5026,7 @@ components:
         message:
           type: string
           description: Human-readable message
-          example: 'Project is ready'
+          example: "Project is ready"
 
     # -------------------------------------------------------------------------
     # Version
@@ -5135,7 +5058,7 @@ components:
         buildTime:
           type: string
           description: Build timestamp
-          example: '2025-01-06T10:00:00Z'
+          example: "2025-01-06T10:00:00Z"
         goOS:
           type: string
           description: Target operating system
@@ -5230,7 +5153,7 @@ components:
           minItems: 1
           items:
             type: string
-          example: ['openid', 'profile', 'email']
+          example: ["openid", "profile", "email"]
 
     # -------------------------------------------------------------------------
     # User Type Configuration
@@ -5307,7 +5230,7 @@ components:
             Opaque cursor for fetching the next page. Pass this value as the
             `cursor` query parameter in the next request. Absent when there
             are no more items.
-          example: 'eyJ2IjoibWV0YS5rOHMuaW8vdjEiLCJydiI6MzQ0N30='
+          example: "eyJ2IjoibWV0YS5rOHMuaW8vdjEiLCJydiI6MzQ0N30="
         remainingCount:
           type: integer
           format: int64
@@ -5437,6 +5360,7 @@ components:
         pagination:
           $ref: '#/components/schemas/Pagination'
 
+
     # -------------------------------------------------------------------------
     # Components
     # -------------------------------------------------------------------------
@@ -5483,7 +5407,7 @@ components:
               default: ComponentType
             name:
               type: string
-              description: 'Component type reference in format: {workloadType}/{componentTypeName}'
+              description: "Component type reference in format: {workloadType}/{componentTypeName}"
               example: deployment/go-service
               pattern: '^(deployment|statefulset|cronjob|job|proxy)/[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
         autoDeploy:
@@ -5614,12 +5538,12 @@ components:
           maxLength: 1024
         type:
           type: string
-          description: 'DEPRECATED: Use componentType instead. Legacy component type field.'
+          description: "DEPRECATED: Use componentType instead. Legacy component type field."
           example: service/go-service
           deprecated: true
         componentType:
           type: string
-          description: 'Component type reference (format: {workloadType}/{componentTypeName})'
+          description: "Component type reference (format: {workloadType}/{componentTypeName})"
           example: service/go-service
         autoDeploy:
           type: boolean
@@ -5877,7 +5801,7 @@ components:
           description: References to SecretReference resources for image pulling
           items:
             type: string
-          example: ['docker-registry-secret']
+          example: ["docker-registry-secret"]
         secretStoreRef:
           $ref: '#/components/schemas/SecretStoreRef'
         observabilityPlaneRef:
@@ -6224,7 +6148,7 @@ components:
           description: References to SecretReference resources for image pulling
           items:
             type: string
-          example: ['docker-registry-secret']
+          example: ["docker-registry-secret"]
         secretStoreRef:
           $ref: '#/components/schemas/SecretStoreRef'
         observabilityPlaneRef:
@@ -6455,7 +6379,7 @@ components:
           description: List of allowed ComponentWorkflow names for this component type
           items:
             type: string
-          example: ['docker-build', 'buildpack-build']
+          example: ["docker-build", "buildpack-build"]
         schema:
           type: object
           description: Developer-configurable schema definition
@@ -6534,7 +6458,7 @@ components:
             properties:
               rule:
                 type: string
-                description: 'CEL expression wrapped in ${...} that must evaluate to true'
+                description: "CEL expression wrapped in ${...} that must evaluate to true"
                 pattern: '^\$\{[\s\S]+\}\s*$'
               message:
                 type: string
@@ -6559,11 +6483,11 @@ components:
                 default: dataplane
               includeWhen:
                 type: string
-                description: 'CEL expression determining if this resource should be created'
+                description: "CEL expression determining if this resource should be created"
                 pattern: '^\$\{[\s\S]+\}\s*$'
               forEach:
                 type: string
-                description: 'CEL expression for generating multiple resources from a list'
+                description: "CEL expression for generating multiple resources from a list"
                 pattern: '^\$\{[\s\S]+\}\s*$'
               var:
                 type: string
@@ -6645,10 +6569,10 @@ components:
                 default: dataplane
               includeWhen:
                 type: string
-                description: 'CEL expression determining if this resource should be created'
+                description: "CEL expression determining if this resource should be created"
               forEach:
                 type: string
-                description: 'CEL expression for generating multiple resources from a list'
+                description: "CEL expression for generating multiple resources from a list"
               var:
                 type: string
                 description: Loop variable name when using forEach
@@ -6667,7 +6591,7 @@ components:
             properties:
               forEach:
                 type: string
-                description: 'CEL expression for repeating this patch'
+                description: "CEL expression for repeating this patch"
               var:
                 type: string
                 description: Loop variable name when using forEach
@@ -6690,7 +6614,7 @@ components:
                     description: Resource type to patch
                   where:
                     type: string
-                    description: 'CEL expression to filter which resources to patch'
+                    description: "CEL expression to filter which resources to patch"
               targetPlane:
                 type: string
                 description: Target plane for this patch
@@ -6753,7 +6677,7 @@ components:
           description: List of allowed ComponentWorkflow names for this component type
           items:
             type: string
-          example: ['docker-build', 'buildpack-build']
+          example: ["docker-build", "buildpack-build"]
         schema:
           type: object
           description: Developer-configurable schema definition
@@ -6830,7 +6754,7 @@ components:
             properties:
               rule:
                 type: string
-                description: 'CEL expression wrapped in ${...} that must evaluate to true'
+                description: "CEL expression wrapped in ${...} that must evaluate to true"
               message:
                 type: string
                 description: Error message shown when the rule evaluates to false
@@ -6854,10 +6778,10 @@ components:
                 default: dataplane
               includeWhen:
                 type: string
-                description: 'CEL expression determining if this resource should be created'
+                description: "CEL expression determining if this resource should be created"
               forEach:
                 type: string
-                description: 'CEL expression for generating multiple resources from a list'
+                description: "CEL expression for generating multiple resources from a list"
               var:
                 type: string
                 description: Loop variable name when using forEach
@@ -6934,7 +6858,7 @@ components:
             properties:
               rule:
                 type: string
-                description: 'CEL expression wrapped in ${...} that must evaluate to true'
+                description: "CEL expression wrapped in ${...} that must evaluate to true"
               message:
                 type: string
                 description: Error message shown when the rule evaluates to false
@@ -6953,10 +6877,10 @@ components:
                 default: dataplane
               includeWhen:
                 type: string
-                description: 'CEL expression determining if this resource should be created'
+                description: "CEL expression determining if this resource should be created"
               forEach:
                 type: string
-                description: 'CEL expression for generating multiple resources from a list'
+                description: "CEL expression for generating multiple resources from a list"
               var:
                 type: string
                 description: Loop variable name when using forEach
@@ -6975,7 +6899,7 @@ components:
             properties:
               forEach:
                 type: string
-                description: 'CEL expression for repeating this patch'
+                description: "CEL expression for repeating this patch"
               var:
                 type: string
                 description: Loop variable name when using forEach
@@ -6998,7 +6922,7 @@ components:
                     description: Resource type to patch
                   where:
                     type: string
-                    description: 'CEL expression to filter which resources to patch'
+                    description: "CEL expression to filter which resources to patch"
               targetPlane:
                 type: string
                 description: Target plane for this patch
@@ -7081,28 +7005,79 @@ components:
 
     Workflow:
       type: object
-      description: Generic workflow resource
       required:
-        - name
-        - createdAt
+        - metadata
       properties:
-        name:
+        metadata:
+          $ref: '#/components/schemas/ObjectMeta'
+        spec:
+          $ref: '#/components/schemas/WorkflowSpec'
+        status:
+          readOnly: true
+          allOf:
+            - $ref: '#/components/schemas/WorkflowStatus'
+
+    WorkflowSpec:
+      type: object
+      description: Desired state of a Workflow
+      required:
+        - runTemplate
+      properties:
+        schema:
+          $ref: '#/components/schemas/WorkflowSchema'
+        runTemplate:
+          type: object
+          description: Kubernetes resource template to render and apply for this workflow run.
+          additionalProperties: true
+        resources:
+          type: array
+          description: Additional resource templates to render and apply alongside the workflow run.
+          items:
+            $ref: '#/components/schemas/WorkflowResource'
+        ttlAfterCompletion:
           type: string
-          description: Workflow name (unique within namespace)
-          example: database-migration
-        displayName:
+          description: Time-to-live for WorkflowRun instances after completion (duration string like 10d1h30m).
+
+    WorkflowSchema:
+      type: object
+      description: Developer-facing schema definition for workflow parameters
+      properties:
+        types:
+          type: object
+          description: Reusable type definitions
+          additionalProperties: true
+        parameters:
+          type: object
+          description: Developer-facing configuration options
+          additionalProperties: true
+
+    WorkflowResource:
+      type: object
+      description: Template for generating an additional Kubernetes resource for a workflow run.
+      required:
+        - id
+        - template
+      properties:
+        id:
           type: string
-          description: Human-readable display name
-          example: Database Migration
-        description:
+          description: Unique identifier for this resource within the workflow.
+        includeWhen:
           type: string
-          description: Workflow description
-          example: Runs database migration scripts
-        createdAt:
-          type: string
-          format: date-time
-          description: Creation timestamp
-          example: '2025-01-06T10:00:00Z'
+          description: CEL expression that determines whether this resource is rendered.
+        template:
+          type: object
+          description: Kubernetes resource template with CEL expressions.
+          additionalProperties: true
+
+    WorkflowStatus:
+      type: object
+      description: Observed state of a Workflow
+      properties:
+        conditions:
+          type: array
+          description: Kubernetes-style conditions
+          items:
+            $ref: '#/components/schemas/Condition'
 
     # -------------------------------------------------------------------------
     # WorkflowRuns
@@ -7123,56 +7098,106 @@ components:
 
     WorkflowRun:
       type: object
-      description: Generic workflow run (execution)
+      required:
+        - metadata
+      properties:
+        metadata:
+          $ref: '#/components/schemas/ObjectMeta'
+        spec:
+          $ref: '#/components/schemas/WorkflowRunSpec'
+        status:
+          readOnly: true
+          allOf:
+            - $ref: '#/components/schemas/WorkflowRunStatus'
+
+    WorkflowRunSpec:
+      type: object
+      description: Desired state of a WorkflowRun
+      required:
+        - workflow
+      properties:
+        workflow:
+          $ref: '#/components/schemas/WorkflowRunConfig'
+        ttlAfterCompletion:
+          type: string
+          description: Time-to-live for this workflow run after completion (duration string like 10d1h30m).
+
+    WorkflowRunConfig:
+      type: object
+      description: Workflow configuration referencing the Workflow and providing schema values.
       required:
         - name
-        - workflowName
-        - orgName
-        - createdAt
-        - status
       properties:
         name:
           type: string
-          description: Workflow run name
-          example: database-migration-run-1234
-        uuid:
-          type: string
-          description: Unique identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
-        workflowName:
-          type: string
-          description: Parent workflow name
-          example: database-migration
-        orgName:
-          type: string
-          description: Organization name
-          example: my-org
-        status:
-          type: string
-          enum: [Pending, Running, Succeeded, Failed, Error]
-          description: Current execution status
-          example: Succeeded
+          description: Referenced Workflow name
         parameters:
           type: object
-          description: User-defined workflow parameters
+          description: Developer-provided parameters for the referenced workflow
           additionalProperties: true
-          example:
-            database_url: 'postgresql://localhost:5432/mydb'
-            migration_version: 'v2.1.0'
-        createdAt:
+
+    ResourceReference:
+      type: object
+      description: Reference to a Kubernetes resource applied during a workflow run
+      required:
+        - apiVersion
+        - kind
+        - name
+      properties:
+        apiVersion:
           type: string
-          format: date-time
-          description: Creation timestamp
-          example: '2025-01-06T10:00:00Z'
-        finishedAt:
+        kind:
           type: string
-          format: date-time
-          description: Completion timestamp
-          example: '2025-01-06T10:05:00Z'
+        name:
+          type: string
+        namespace:
+          type: string
+
+    WorkflowTask:
+      type: object
+      description: A single task/step within a workflow execution
+      required:
+        - name
+      properties:
+        name:
+          type: string
         phase:
           type: string
-          description: Detailed execution phase
-          example: 'Clone completed, build in progress'
+          description: Current execution phase of the task
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        message:
+          type: string
+
+    WorkflowRunStatus:
+      type: object
+      description: Observed state of a WorkflowRun
+      properties:
+        conditions:
+          type: array
+          description: Kubernetes-style conditions
+          items:
+            $ref: '#/components/schemas/Condition'
+        runReference:
+          $ref: '#/components/schemas/ResourceReference'
+        resources:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceReference'
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowTask'
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
 
     WorkflowRunStatusResponse:
       type: object
@@ -7217,12 +7242,12 @@ components:
           type: string
           format: date-time
           description: When the step started
-          example: '2025-01-06T10:00:00Z'
+          example: "2025-01-06T10:00:00Z"
         finishedAt:
           type: string
           format: date-time
           description: When the step finished
-          example: '2025-01-06T10:01:00Z'
+          example: "2025-01-06T10:01:00Z"
 
     WorkflowRunLogEntry:
       type: object
@@ -7234,11 +7259,11 @@ components:
           type: string
           format: date-time
           description: Log entry timestamp
-          example: '2025-01-06T10:00:00Z'
+          example: "2025-01-06T10:00:00Z"
         log:
           type: string
           description: Log message
-          example: 'Step 1: Cloning repository...'
+          example: "Step 1: Cloning repository..."
 
     WorkflowRunEventEntry:
       type: object
@@ -7253,7 +7278,7 @@ components:
           type: string
           format: date-time
           description: Event timestamp
-          example: '2025-01-06T10:00:00Z'
+          example: "2025-01-06T10:00:00Z"
         type:
           type: string
           description: Event type
@@ -7265,7 +7290,7 @@ components:
         message:
           type: string
           description: Human-readable description of the event
-          example: 'Container main started'
+          example: "Container main started"
 
     CreateWorkflowRunRequest:
       type: object
@@ -7283,153 +7308,8 @@ components:
           description: User-defined workflow parameters
           additionalProperties: true
           example:
-            database_url: 'postgresql://localhost:5432/mydb'
-            migration_version: 'v2.1.0'
-
-    # -------------------------------------------------------------------------
-    # ComponentWorkflows
-    # -------------------------------------------------------------------------
-    ComponentWorkflowTemplateList:
-      type: object
-      description: Paginated list of component workflow templates
-      required:
-        - items
-        - pagination
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/ComponentWorkflowTemplate'
-        pagination:
-          $ref: '#/components/schemas/Pagination'
-
-    ComponentWorkflowTemplate:
-      type: object
-      description: Component workflow template resource
-      required:
-        - name
-        - createdAt
-      properties:
-        name:
-          type: string
-          description: ComponentWorkflow name (unique within namespace)
-          example: docker-build
-        displayName:
-          type: string
-          description: Human-readable display name
-          example: Docker Build
-        description:
-          type: string
-          description: ComponentWorkflow description
-          example: Builds container images using Docker
-        createdAt:
-          type: string
-          format: date-time
-          description: Creation timestamp
-          example: '2025-01-06T10:00:00Z'
-
-    UpdateComponentWorkflowRequest:
-      type: object
-      description: Request to update component workflow parameters
-      properties:
-        workflowName:
-          type: string
-          description: ComponentWorkflow template name to use
-          example: docker-build
-        systemParameters:
-          type: object
-          description: System parameters including repository configuration
-          properties:
-            repository:
-              type: object
-              properties:
-                url:
-                  type: string
-                  description: Git repository URL
-                  example: https://github.com/org/repo.git
-                revision:
-                  type: object
-                  properties:
-                    branch:
-                      type: string
-                      description: Git branch
-                      example: main
-                    commit:
-                      type: string
-                      description: Specific commit SHA
-                      example: abc1234
-                appPath:
-                  type: string
-                  description: Path to application within repository
-                  example: ./services/api
-        parameters:
-          type: object
-          description: User-defined workflow parameters
-          additionalProperties: true
-
-    ComponentWorkflowRunList:
-      type: object
-      description: Paginated list of component workflow runs
-      required:
-        - items
-        - pagination
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/ComponentWorkflowRun'
-        pagination:
-          $ref: '#/components/schemas/Pagination'
-
-    ComponentWorkflowRun:
-      type: object
-      description: Component workflow run (build execution)
-      required:
-        - name
-        - componentName
-        - projectName
-        - namespaceName
-        - createdAt
-      properties:
-        name:
-          type: string
-          description: Workflow run name
-          example: api-service-run-1234
-        uuid:
-          type: string
-          description: Unique identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
-        componentName:
-          type: string
-          description: Parent component name
-          example: api-service
-        projectName:
-          type: string
-          description: Parent project name
-          example: my-project
-        namespaceName:
-          type: string
-          description: Parent namespace name
-          example: my-namespace
-        status:
-          type: string
-          description: Run status
-          example: Running
-        commit:
-          type: string
-          description: Git commit SHA being built
-          example: abc1234def5678
-        image:
-          type: string
-          description: Built container image
-          example: registry.example.com/my-namespace/api-service:abc1234
-        workflow:
-          $ref: '#/components/schemas/ComponentWorkflowConfig'
-        createdAt:
-          type: string
-          format: date-time
-          description: Creation timestamp
-          example: '2025-01-06T10:00:00Z'
+            database_url: "postgresql://localhost:5432/mydb"
+            migration_version: "v2.1.0"
 
     # -------------------------------------------------------------------------
     # Component Extended Schemas
@@ -8032,11 +7912,11 @@ components:
           type: string
           description: Timestamp of the log entry in RFC3339 format
           format: date-time
-          example: '2024-01-10T12:34:56.789Z'
+          example: "2024-01-10T12:34:56.789Z"
         log:
           type: string
           description: Log message content
-          example: 'Starting application server on port 8080'
+          example: "Starting application server on port 8080"
 
     ResourcePodLogsResponse:
       type: object
@@ -8127,7 +8007,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ['project:create', 'project:view', 'project:delete']
+          example: ["project:create", "project:view", "project:delete"]
         description:
           type: string
           description: Human-readable description of the role
@@ -8170,7 +8050,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ['component:create', 'component:view']
+          example: ["component:create", "component:view"]
         description:
           type: string
           description: Human-readable description of the role
@@ -8385,7 +8265,7 @@ components:
           description: Entitlement values
           items:
             type: string
-          example: ['admin-group', 'dev-group']
+          example: ["admin-group", "dev-group"]
 
     Resource:
       type: object
@@ -8443,6 +8323,7 @@ components:
               description: Reason for the decision
               example: User has admin role
 
+
     ActionCapability:
       type: object
       description: Capabilities for a specific action
@@ -8486,7 +8367,8 @@ components:
           type: string
           format: date-time
           description: Time when capabilities were evaluated
-          example: '2025-01-06T10:00:00Z'
+          example: "2025-01-06T10:00:00Z"
+
 
     # -------------------------------------------------------------------------
     # Legacy Authz Schemas (kept for legacy handler compatibility)
@@ -8508,7 +8390,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ['read', 'write', 'delete']
+          example: ["read", "write", "delete"]
         namespace:
           type: string
           description: Namespace for namespace-scoped roles, empty for cluster roles
@@ -8529,7 +8411,7 @@ components:
           description: New list of actions for the role
           items:
             type: string
-          example: ['read', 'write']
+          example: ["read", "write"]
 
     TargetPath:
       type: object
@@ -8639,7 +8521,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ['read', 'write', 'delete']
+          example: ["read", "write", "delete"]
         description:
           type: string
           description: Human-readable description of the role
@@ -8656,7 +8538,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ['read', 'write']
+          example: ["read", "write"]
         description:
           type: string
           description: Human-readable description of the role
@@ -8724,7 +8606,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ['read', 'write']
+          example: ["read", "write"]
         description:
           type: string
           description: Human-readable description of the role
@@ -8741,7 +8623,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ['read', 'write']
+          example: ["read", "write"]
         description:
           type: string
           description: Human-readable description of the role
@@ -8818,7 +8700,7 @@ components:
           description: List of components affected by this webhook
           items:
             type: string
-          example: ['api-service', 'web-app']
+          example: ["api-service", "web-app"]
         triggeredBuilds:
           type: integer
           description: Number of builds triggered
@@ -8890,7 +8772,7 @@ components:
           type: string
           format: date-time
           description: When the secret reference was last processed
-          example: '2025-01-06T11:00:00Z'
+          example: "2025-01-06T11:00:00Z"
         secretStores:
           type: array
           description: Secret stores using this reference
@@ -9411,11 +9293,11 @@ components:
         subject:
           type: string
           description: Email subject line template using CEL expressions
-          example: '[${alert.severity}] - ${alert.name} Triggered'
+          example: "[${alert.severity}] - ${alert.name} Triggered"
         body:
           type: string
           description: Email body template using CEL expressions
-          example: 'Alert: ${alert.name} triggered at ${alert.startsAt}.'
+          example: "Alert: ${alert.name} triggered at ${alert.startsAt}."
 
     NotificationWebhookConfig:
       type: object

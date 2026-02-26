@@ -43,8 +43,6 @@ type NewDeploymentPipeline =
 type NewComponentType = OpenChoreoComponents['schemas']['ComponentType'];
 type NewTrait = OpenChoreoComponents['schemas']['Trait'];
 type NewWorkflow = OpenChoreoComponents['schemas']['Workflow'];
-type NewComponentWorkflowTemplate =
-  OpenChoreoComponents['schemas']['ComponentWorkflowTemplate'];
 type NewWorkload = OpenChoreoComponents['schemas']['Workload'];
 type NewAgentConnectionStatus =
   OpenChoreoComponents['schemas']['AgentConnectionStatus'];
@@ -775,45 +773,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         }
       }
 
-      // Get component workflows for each namespace
-      for (const ns of namespaces) {
-        const nsName = getName(ns)!;
-        try {
-          const componentWorkflows =
-            await fetchAllPages<NewComponentWorkflowTemplate>(cursor =>
-              client
-                .GET('/api/v1/namespaces/{namespaceName}/component-workflows', {
-                  params: {
-                    path: { namespaceName: nsName },
-                    query: { limit: 100, cursor },
-                  },
-                })
-                .then(res => {
-                  if (res.error)
-                    throw new Error(
-                      `Failed to fetch component workflows for ${nsName}`,
-                    );
-                  return res.data;
-                }),
-            );
-
-          this.logger.debug(
-            `Found ${componentWorkflows.length} component workflows in namespace: ${nsName}`,
-          );
-
-          // ComponentWorkflowTemplate is flat (name, displayName, description, createdAt)
-          // — same shape as legacy, reuse translateComponentWorkflowToEntity
-          const cwEntities: Entity[] = componentWorkflows.map(cw =>
-            this.translateComponentWorkflowToEntity(cw, nsName),
-          );
-          allEntities.push(...cwEntities);
-        } catch (error) {
-          this.logger.warn(
-            `Failed to fetch component workflows for namespace ${nsName}: ${error}`,
-          );
-        }
-      }
-
       await this.connection!.applyMutation({
         type: 'full',
         entities: allEntities.map(entity => ({
@@ -923,7 +882,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
    * Translates a WorkflowResponse (component workflow) from OpenChoreo API to a Backstage ComponentWorkflow entity
    */
   private translateComponentWorkflowToEntity(
-    cw: ModelsWorkflow | NewComponentWorkflowTemplate,
+    cw: ModelsWorkflow,
     namespaceName: string,
   ): ComponentWorkflowEntityV1alpha1 {
     return translateCW(cw, namespaceName, {
@@ -1327,21 +1286,21 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     wf: NewWorkflow,
     namespaceName: string,
   ): WorkflowEntityV1alpha1 {
-    const wfName = wf.name;
+    const wfName = getName(wf)!;
     return {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'Workflow',
       metadata: {
         name: wfName,
         namespace: namespaceName,
-        title: wf.displayName || wfName,
-        description: wf.description || `${wfName} workflow`,
+        title: getDisplayName(wf) || wfName,
+        description: getDescription(wf) || `${wfName} workflow`,
         tags: ['openchoreo', 'workflow', 'platform-engineering'],
         annotations: {
           'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
           'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
           [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
-          [CHOREO_ANNOTATIONS.CREATED_AT]: wf.createdAt || '',
+          [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(wf) || '',
         },
         labels: {
           [CHOREO_LABELS.MANAGED]: 'true',
