@@ -21,13 +21,11 @@ import {
 import type {
   NamespaceResponse,
   ComponentResponse,
-  WorkflowResponse,
 } from '@openchoreo/backstage-plugin-common';
 import { OpenChoreoTokenService } from '@openchoreo/openchoreo-auth';
 
 type ModelsNamespace = NamespaceResponse;
 type ModelsComponent = ComponentResponse;
-type ModelsWorkflow = WorkflowResponse;
 
 // New API types
 type NewNamespace = OpenChoreoComponents['schemas']['Namespace'];
@@ -71,7 +69,6 @@ import {
   ComponentTypeEntityV1alpha1,
   TraitTypeEntityV1alpha1,
   WorkflowEntityV1alpha1,
-  ComponentWorkflowEntityV1alpha1,
 } from '../kinds';
 import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
 import {
@@ -80,7 +77,6 @@ import {
   translateEnvironmentToEntity as translateEnvironment,
   translateComponentTypeToEntity as translateCT,
   translateTraitToEntity as translateTrait,
-  translateComponentWorkflowToEntity as translateCW,
 } from '../utils/entityTranslation';
 
 /**
@@ -876,18 +872,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     };
 
     return domainEntity;
-  }
-
-  /**
-   * Translates a WorkflowResponse (component workflow) from OpenChoreo API to a Backstage ComponentWorkflow entity
-   */
-  private translateComponentWorkflowToEntity(
-    cw: ModelsWorkflow,
-    namespaceName: string,
-  ): ComponentWorkflowEntityV1alpha1 {
-    return translateCW(cw, namespaceName, {
-      locationKey: this.getProviderName(),
-    });
   }
 
   // ───────────────────────────────────────────────────────────

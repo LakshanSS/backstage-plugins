@@ -19,6 +19,35 @@ type ModelsBuild = ComponentWorkflowRunResponse;
 
 type WorkflowRunStatusResponse = ComponentWorkflowRunStatusResponse;
 
+/** Transform a raw K8s-style WorkflowRun object into the flat ModelsBuild shape. */
+function transformWorkflowRun(run: any): ModelsBuild {
+  const labels = run.metadata?.labels ?? {};
+  const annotations = run.metadata?.annotations ?? {};
+  const readyCondition = (run.status?.conditions ?? []).find(
+    (c: any) => c.type === 'Ready',
+  );
+  const status: string =
+    readyCondition?.reason ??
+    (readyCondition?.status === 'True' ? 'Succeeded' : 'Running');
+  return {
+    name: run.metadata?.name ?? '',
+    uuid: run.metadata?.uid ?? '',
+    componentName: labels['openchoreo.dev/component'] ?? '',
+    projectName: labels['openchoreo.dev/project'] ?? '',
+    namespaceName: run.metadata?.namespace ?? '',
+    status,
+    commit: annotations['openchoreo.dev/commit'],
+    image: annotations['openchoreo.dev/image'],
+    createdAt: run.metadata?.creationTimestamp ?? new Date().toISOString(),
+    workflow: run.spec?.workflow
+      ? {
+          name: run.spec.workflow.name,
+          parameters: run.spec.workflow.parameters as Record<string, unknown>,
+        }
+      : undefined,
+  };
+}
+
 export class ObservabilityNotConfiguredError extends Error {
   constructor(componentName: string) {
     super(`Build logs are not available for component ${componentName}`);
@@ -75,11 +104,14 @@ export class WorkflowService {
       }
 
       const allRuns = (data?.items || []) as any[];
-      // Filter by component label
-      const builds = allRuns.filter(
-        (run: any) =>
-          run.metadata?.labels?.['openchoreo.dev/component'] === componentName,
-      );
+      // Filter by component label and transform to flat response shape
+      const builds = allRuns
+        .filter(
+          (run: any) =>
+            run.metadata?.labels?.['openchoreo.dev/component'] ===
+            componentName,
+        )
+        .map(transformWorkflowRun);
 
       this.logger.debug(
         `Successfully fetched ${builds.length} component workflow runs for component: ${componentName}`,
@@ -131,7 +163,7 @@ export class WorkflowService {
       }
 
       this.logger.debug(`Successfully fetched workflow run: ${runName}`);
-      return data;
+      return transformWorkflowRun(data);
     } catch (error) {
       this.logger.error(
         `Failed to fetch workflow run ${runName} for component ${componentName}: ${error}`,
@@ -270,7 +302,7 @@ export class WorkflowService {
           (data as any).metadata?.name
         }`,
       );
-      return data as any;
+      return transformWorkflowRun(data);
     } catch (error) {
       this.logger.error(
         `Failed to trigger component workflow for component ${componentName}: ${error}`,

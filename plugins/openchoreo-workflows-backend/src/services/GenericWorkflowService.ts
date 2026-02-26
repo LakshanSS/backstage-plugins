@@ -72,7 +72,17 @@ export class GenericWorkflowService {
         );
       }
 
-      const items = (data?.items || []) as Workflow[];
+      // Map K8s-style Workflow to the local flat Workflow interface
+      const items: Workflow[] = ((data as any)?.items || []).map((wf: any) => ({
+        name: wf.metadata?.name ?? '',
+        displayName:
+          wf.metadata?.annotations?.['openchoreo.dev/display-name'] ??
+          wf.metadata?.name,
+        description:
+          wf.metadata?.annotations?.['openchoreo.dev/description'],
+        createdAt:
+          wf.metadata?.creationTimestamp ?? new Date().toISOString(),
+      }));
 
       this.logger.debug(
         `Successfully fetched ${items.length} generic workflows for namespace: ${namespaceName}`,
@@ -80,7 +90,9 @@ export class GenericWorkflowService {
 
       return {
         items,
-        pagination: data?.pagination as { nextCursor?: string } | undefined,
+        pagination: (data as any)?.pagination as
+          | { nextCursor?: string }
+          | undefined,
       };
     } catch (error) {
       this.logger.error(
@@ -159,7 +171,7 @@ export class GenericWorkflowService {
       });
 
       const { data, error, response } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/workflow-runs',
+        '/api/v1/namespaces/{namespaceName}/workflowruns',
         {
           params: {
             path: { namespaceName },
@@ -173,7 +185,7 @@ export class GenericWorkflowService {
         );
       }
 
-      let items = (data?.items || []) as unknown as WorkflowRun[];
+      let items = ((data as any)?.items || []) as unknown as WorkflowRun[];
 
       // Filter by workflowName if provided (client-side filtering)
       // TODO: If upstream API supports filtering, pass workflowName as query param instead
@@ -191,7 +203,9 @@ export class GenericWorkflowService {
 
       return {
         items,
-        pagination: data?.pagination as { nextCursor?: string } | undefined,
+        pagination: (data as any)?.pagination as
+          | { nextCursor?: string }
+          | undefined,
       };
     } catch (error) {
       this.logger.error(
@@ -221,7 +235,7 @@ export class GenericWorkflowService {
       });
 
       const { data, error, response } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/workflow-runs/{runName}',
+        '/api/v1/namespaces/{namespaceName}/workflowruns/{runName}',
         {
           params: {
             path: { namespaceName, runName },
@@ -270,14 +284,19 @@ export class GenericWorkflowService {
       });
 
       const { data, error, response } = await client.POST(
-        '/api/v1/namespaces/{namespaceName}/workflow-runs',
+        '/api/v1/namespaces/{namespaceName}/workflowruns',
         {
           params: {
             path: { namespaceName },
           },
           body: {
-            workflowName: request.workflowName,
-            parameters: request.parameters,
+            metadata: { name: `${request.workflowName}-${Date.now()}` },
+            spec: {
+              workflow: {
+                name: request.workflowName,
+                parameters: request.parameters,
+              },
+            },
           } as any,
         },
       );
@@ -293,7 +312,7 @@ export class GenericWorkflowService {
       }
 
       this.logger.debug(
-        `Successfully created workflow run: ${(data as any).name}`,
+        `Successfully created workflow run: ${(data as any).metadata?.name}`,
       );
 
       return data as unknown as WorkflowRun;
@@ -332,7 +351,7 @@ export class GenericWorkflowService {
         token,
       );
       // Use run name for observability API (not UUID)
-      const runId = workflowRun.name || runName;
+      const runId = (workflowRun as any).metadata?.name || runName;
 
       // Get the observer URL from the environment
       const mainClient = createOpenChoreoApiClient({

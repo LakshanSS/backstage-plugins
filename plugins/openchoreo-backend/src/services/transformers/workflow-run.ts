@@ -1,44 +1,42 @@
 import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
 import type { ComponentWorkflowRunResponse } from '@openchoreo/backstage-plugin-common';
 
-type ComponentWorkflowRun =
-  OpenChoreoComponents['schemas']['ComponentWorkflowRun'];
+// New K8s-style WorkflowRun (metadata + spec + status)
+type WorkflowRun = OpenChoreoComponents['schemas']['WorkflowRun'];
 
 /**
- * Transforms a new-API ComponentWorkflowRun (flat response) into the legacy
- * ComponentWorkflowRunResponse shape. Both types are structurally identical,
- * so this is essentially a pass-through with default values.
+ * Transforms a new-API WorkflowRun (K8s-style) into the legacy
+ * ComponentWorkflowRunResponse shape used by the frontend.
+ * Component/project context is extracted from metadata labels.
  */
 export function transformComponentWorkflowRun(
-  run: ComponentWorkflowRun,
+  run: WorkflowRun,
 ): ComponentWorkflowRunResponse {
+  const labels = run.metadata?.labels ?? {};
+  const annotations = run.metadata?.annotations ?? {};
+
+  // Derive overall status from conditions
+  const readyCondition = run.status?.conditions?.find(
+    c => c.type === 'Ready',
+  );
+  const status =
+    readyCondition?.reason ??
+    (readyCondition?.status === 'True' ? 'Succeeded' : 'Running');
+
   return {
-    name: run.name,
-    uuid: run.uuid ?? '',
-    componentName: run.componentName,
-    projectName: run.projectName,
-    namespaceName: run.namespaceName,
-    commit: run.commit,
-    status: run.status,
-    createdAt: run.createdAt,
-    image: run.image,
-    workflow: run.workflow
+    name: run.metadata?.name ?? '',
+    uuid: run.metadata?.uid ?? '',
+    componentName: labels['openchoreo.dev/component'] ?? '',
+    projectName: labels['openchoreo.dev/project'] ?? '',
+    namespaceName: run.metadata?.namespace ?? '',
+    status,
+    commit: annotations['openchoreo.dev/commit'],
+    image: annotations['openchoreo.dev/image'],
+    createdAt: run.metadata?.creationTimestamp ?? new Date().toISOString(),
+    workflow: run.spec?.workflow
       ? {
-          name: run.workflow.name ?? '',
-          systemParameters: {
-            repository: {
-              url: run.workflow.systemParameters?.repository?.url ?? '',
-              appPath: run.workflow.systemParameters?.repository?.appPath ?? '',
-              revision: {
-                branch:
-                  run.workflow.systemParameters?.repository?.revision?.branch ??
-                  '',
-                commit:
-                  run.workflow.systemParameters?.repository?.revision?.commit,
-              },
-            },
-          },
-          parameters: run.workflow.parameters,
+          name: run.spec.workflow.name,
+          parameters: run.spec.workflow.parameters as Record<string, unknown>,
         }
       : undefined,
   };
