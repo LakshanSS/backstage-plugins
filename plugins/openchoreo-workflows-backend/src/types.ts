@@ -5,7 +5,7 @@ export interface Workflow {
   name: string;
   displayName?: string;
   description?: string;
-  createdAt: string;
+  createdAt?: string;
 }
 
 /**

@@ -15,13 +15,41 @@ export function transformComponentWorkflowRun(
   const labels = run.metadata?.labels ?? {};
   const annotations = run.metadata?.annotations ?? {};
 
-  // Derive overall status from conditions
-  const readyCondition = run.status?.conditions?.find(
-    c => c.type === 'Ready',
-  );
-  const status =
-    readyCondition?.reason ??
-    (readyCondition?.status === 'True' ? 'Succeeded' : 'Running');
+  // Derive overall status.
+  // completedAt is the strongest signal — if set, the run is definitively done
+  // and we never return an in-progress status even if K8s conditions are stale.
+  const readyCondition = run.status?.conditions?.find(c => c.type === 'Ready');
+  const tasks = (run.status?.tasks ?? []) as Array<{
+    phase?: string;
+    completedAt?: string;
+  }>;
+
+  let status: string;
+  if (run.status?.completedAt) {
+    if (tasks.some(t => t.phase === 'Failed' || t.phase === 'Error')) {
+      status = 'Failed';
+    } else {
+      const reason = readyCondition?.reason;
+      status =
+        reason && reason !== 'Running' && reason !== 'Pending'
+          ? reason
+          : 'Succeeded';
+    }
+  } else if (readyCondition) {
+    status =
+      readyCondition.reason ||
+      (readyCondition.status === 'True' ? 'Succeeded' : 'Running');
+  } else if (tasks.some(t => t.phase === 'Failed' || t.phase === 'Error')) {
+    status = 'Failed';
+  } else if (tasks.length > 0 && tasks.every(t => t.phase === 'Succeeded')) {
+    status = 'Succeeded';
+  } else if (tasks.some(t => t.phase === 'Running')) {
+    status = 'Running';
+  } else if (run.status?.startedAt) {
+    status = 'Running';
+  } else {
+    status = 'Pending';
+  }
 
   return {
     name: run.metadata?.name ?? '',

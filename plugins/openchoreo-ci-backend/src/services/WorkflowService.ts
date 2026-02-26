@@ -3,6 +3,7 @@ import {
   createOpenChoreoApiClient,
   createOpenChoreoLegacyApiClient,
   createObservabilityClientWithUrl,
+  fetchAllPages,
 } from '@openchoreo/openchoreo-client-node';
 import type {
   ComponentWorkflowRunResponse,
@@ -19,16 +20,58 @@ type ModelsBuild = ComponentWorkflowRunResponse;
 
 type WorkflowRunStatusResponse = ComponentWorkflowRunStatusResponse;
 
+/**
+ * Derive a string status from a raw K8s WorkflowRun.
+ *
+ * completedAt is treated as the strongest signal: if set, the run is
+ * definitively done and we never return an in-progress status, even if
+ * the K8s conditions are stale (e.g. controller hasn't reconciled yet).
+ */
+function deriveWorkflowRunStatus(run: any): string {
+  const readyCondition = (run.status?.conditions ?? []).find(
+    (c: any) => c.type === 'Ready',
+  );
+  const tasks = (run.status?.tasks ?? []) as any[];
+
+  // completedAt is the strongest completion signal — takes priority
+  if (run.status?.completedAt) {
+    if (tasks.some((t: any) => t.phase === 'Failed' || t.phase === 'Error')) {
+      return 'Failed';
+    }
+    const reason = readyCondition?.reason;
+    if (reason && reason !== 'Running' && reason !== 'Pending') {
+      return reason;
+    }
+    return 'Succeeded';
+  }
+
+  // Trust the Ready condition when the run has not yet completed
+  if (readyCondition) {
+    return (
+      readyCondition.reason ||
+      (readyCondition.status === 'True' ? 'Succeeded' : 'Running')
+    );
+  }
+
+  // No conditions — fall back to tasks then timing
+  if (tasks.some((t: any) => t.phase === 'Failed' || t.phase === 'Error')) {
+    return 'Failed';
+  }
+  if (tasks.every((t: any) => t.phase === 'Succeeded') && tasks.length > 0) {
+    return 'Succeeded';
+  }
+  if (tasks.some((t: any) => t.phase === 'Running')) {
+    return 'Running';
+  }
+  if (run.status?.startedAt) return 'Running';
+  return 'Pending';
+}
+
 /** Transform a raw K8s-style WorkflowRun object into the flat ModelsBuild shape. */
 function transformWorkflowRun(run: any): ModelsBuild {
   const labels = run.metadata?.labels ?? {};
   const annotations = run.metadata?.annotations ?? {};
-  const readyCondition = (run.status?.conditions ?? []).find(
-    (c: any) => c.type === 'Ready',
-  );
-  const status: string =
-    readyCondition?.reason ??
-    (readyCondition?.status === 'True' ? 'Succeeded' : 'Running');
+  const status = deriveWorkflowRunStatus(run);
   return {
     name: run.metadata?.name ?? '',
     uuid: run.metadata?.uid ?? '',
@@ -87,23 +130,23 @@ export class WorkflowService {
         logger: this.logger,
       });
 
-      const { data, error, response } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/workflowruns',
-        {
-          params: {
-            path: { namespaceName },
-            query: { limit: 100 },
-          },
-        },
+      const allRuns = await fetchAllPages(cursor =>
+        client
+          .GET('/api/v1/namespaces/{namespaceName}/workflowruns', {
+            params: {
+              path: { namespaceName },
+              query: { limit: 100, cursor },
+            },
+          })
+          .then(res => {
+            if (res.error || !res.response.ok) {
+              throw new Error(
+                `Failed to fetch component workflow runs: ${res.response.status} ${res.response.statusText}`,
+              );
+            }
+            return res.data;
+          }),
       );
-
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch component workflow runs: ${response.status} ${response.statusText}`,
-        );
-      }
-
-      const allRuns = (data?.items || []) as any[];
       // Filter by component label and transform to flat response shape
       const builds = allRuns
         .filter(
@@ -816,8 +859,7 @@ export class WorkflowService {
         displayName:
           wf.metadata?.annotations?.['openchoreo.dev/display-name'] ??
           wf.metadata?.name,
-        description:
-          wf.metadata?.annotations?.['openchoreo.dev/description'],
+        description: wf.metadata?.annotations?.['openchoreo.dev/description'],
         createdAt: wf.metadata?.creationTimestamp ?? new Date().toISOString(),
       }));
 

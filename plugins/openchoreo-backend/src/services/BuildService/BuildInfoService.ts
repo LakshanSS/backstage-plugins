@@ -155,7 +155,9 @@ export class BuildInfoService {
       }
       const workflowName = (compData as any)?.spec?.workflow?.name;
       if (!workflowName) {
-        throw new Error(`Component ${componentName} has no workflow configured`);
+        throw new Error(
+          `Component ${componentName} has no workflow configured`,
+        );
       }
 
       const parameters: Record<string, unknown> = {};
