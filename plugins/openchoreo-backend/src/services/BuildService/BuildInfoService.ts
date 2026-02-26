@@ -84,8 +84,8 @@ export class BuildInfoService {
 
   async getWorkflowRun(
     namespaceName: string,
-    _projectName: string,
-    _componentName: string,
+    projectName: string,
+    componentName: string,
     runName: string,
     token?: string,
   ): Promise<any> {
@@ -112,6 +112,16 @@ export class BuildInfoService {
       if (error || !response.ok) {
         throw new Error(
           `Failed to fetch workflow run: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const runLabels = (data as any)?.metadata?.labels ?? {};
+      if (
+        runLabels['openchoreo.dev/component'] !== componentName ||
+        runLabels['openchoreo.dev/project'] !== projectName
+      ) {
+        throw new Error(
+          `Workflow run ${runName} does not belong to component ${componentName} in project ${projectName}`,
         );
       }
 

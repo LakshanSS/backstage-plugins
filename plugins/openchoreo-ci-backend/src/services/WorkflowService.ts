@@ -81,7 +81,7 @@ function transformWorkflowRun(run: any): ModelsBuild {
     status,
     commit: annotations['openchoreo.dev/commit'],
     image: annotations['openchoreo.dev/image'],
-    createdAt: run.metadata?.creationTimestamp ?? new Date().toISOString(),
+    createdAt: run.metadata?.creationTimestamp,
     workflow: run.spec?.workflow
       ? {
           name: run.spec.workflow.name,
@@ -203,6 +203,16 @@ export class WorkflowService {
 
       if (!data) {
         throw new Error('No workflow run data returned');
+      }
+
+      const runLabels = (data as any).metadata?.labels ?? {};
+      if (
+        runLabels['openchoreo.dev/component'] !== componentName ||
+        runLabels['openchoreo.dev/project'] !== projectName
+      ) {
+        throw new Error(
+          `Workflow run ${runName} does not belong to component ${componentName} in project ${projectName}`,
+        );
       }
 
       this.logger.debug(`Successfully fetched workflow run: ${runName}`);
@@ -860,7 +870,7 @@ export class WorkflowService {
           wf.metadata?.annotations?.['openchoreo.dev/display-name'] ??
           wf.metadata?.name,
         description: wf.metadata?.annotations?.['openchoreo.dev/description'],
-        createdAt: wf.metadata?.creationTimestamp ?? new Date().toISOString(),
+        createdAt: wf.metadata?.creationTimestamp,
       }));
 
       this.logger.debug(

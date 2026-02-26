@@ -67,11 +67,9 @@ function transformWorkflowRun(run: any): import('../types').WorkflowRun {
     uuid: run.metadata?.uid,
     workflowName: run.spec?.workflow?.name ?? '',
     namespaceName: run.metadata?.namespace ?? '',
-    status: deriveWorkflowRunStatus(
-      run,
-    ) as import('../types').WorkflowRunStatus,
+    status: deriveWorkflowRunStatus(run),
     parameters: run.spec?.workflow?.parameters,
-    createdAt: run.metadata?.creationTimestamp ?? new Date().toISOString(),
+    createdAt: run.metadata?.creationTimestamp,
     finishedAt: run.status?.completedAt,
   };
 }
@@ -384,7 +382,7 @@ export class GenericWorkflowService {
         `Successfully created workflow run: ${(data as any).metadata?.name}`,
       );
 
-      return data as unknown as WorkflowRun;
+      return transformWorkflowRun(data);
     } catch (error) {
       this.logger.error(
         `Failed to create workflow run for workflow ${request.workflowName} in namespace ${namespaceName}: ${error}`,

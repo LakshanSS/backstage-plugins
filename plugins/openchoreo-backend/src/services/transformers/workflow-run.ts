@@ -60,7 +60,7 @@ export function transformComponentWorkflowRun(
     status,
     commit: annotations['openchoreo.dev/commit'],
     image: annotations['openchoreo.dev/image'],
-    createdAt: run.metadata?.creationTimestamp ?? new Date().toISOString(),
+    createdAt: run.metadata?.creationTimestamp,
     workflow: run.spec?.workflow
       ? {
           name: run.spec.workflow.name,

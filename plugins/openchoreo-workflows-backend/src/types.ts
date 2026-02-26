@@ -26,10 +26,10 @@ export interface WorkflowRun {
   uuid?: string;
   workflowName: string;
   namespaceName: string;
-  status: WorkflowRunStatus;
+  status: string;
   phase?: string;
   parameters?: Record<string, unknown>;
-  createdAt: string;
+  createdAt?: string;
   finishedAt?: string;
 }
 
